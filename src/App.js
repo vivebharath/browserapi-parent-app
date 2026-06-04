@@ -8,7 +8,7 @@ const App = () => {
   const [sendForm, setSendForm] = useState({ title: '', description: '', value: '' });
   const [sendStatus, setSendStatus] = useState('');
 
-  const CHILD_ORIGIN = 'http://localhost:3001';
+  const CHILD_ORIGIN = 'https://vivebharath.github.io/browserapi-child-app/';
 
   const openChildInNewTab = () => {
     if (childTabRef.current && !childTabRef.current.closed) {
