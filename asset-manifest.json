@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/browserapi-parent-app/static/css/main.33138aaf.css",
+    "main.js": "/browserapi-parent-app/static/js/main.18be0d1b.js",
+    "index.html": "/browserapi-parent-app/index.html",
+    "main.33138aaf.css.map": "/browserapi-parent-app/static/css/main.33138aaf.css.map",
+    "main.18be0d1b.js.map": "/browserapi-parent-app/static/js/main.18be0d1b.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.33138aaf.css",
+    "static/js/main.18be0d1b.js"
+  ]
+}
