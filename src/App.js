@@ -8,13 +8,16 @@ const App = () => {
   const [sendForm, setSendForm] = useState({ title: '', description: '', value: '' });
   const [sendStatus, setSendStatus] = useState('');
 
-  const CHILD_ORIGIN = 'https://vivebharath.github.io/browserapi-child-app/';
+// The full URL used to open the child window
+const CHILD_APP_URL = 'https://vivebharath.github.io/browserapi-child-app/';
 
+// The origin used for security validation (No path at the end!)
+const EXPECTED_ORIGIN = 'https://vivebharath.github.io';
   const openChildInNewTab = () => {
     if (childTabRef.current && !childTabRef.current.closed) {
       childTabRef.current.focus();
     } else {
-      childTabRef.current = window.open(CHILD_ORIGIN, 'child-app');
+      childTabRef.current = window.open(CHILD_APP_URL, 'child-app');
     }
   };
 
@@ -34,7 +37,7 @@ const App = () => {
       payload: sendForm,
       timestamp: new Date().toISOString()
     };
-    childTabRef.current.postMessage(message, CHILD_ORIGIN);
+    childTabRef.current.postMessage(message, CHILD_APP_URL);
     setSendStatus('✅ Data sent to child successfully!');
     setSendForm({ title: '', description: '', value: '' });
   };
@@ -42,7 +45,7 @@ const App = () => {
   useEffect(() => {
     const handleMessage = (event) => {
       // Security: Validate origin
-      if (event.origin !== CHILD_ORIGIN) {
+      if (event.origin !== EXPECTED_ORIGIN) {
         console.warn('Received message from untrusted origin:', event.origin);
         return;
       }
