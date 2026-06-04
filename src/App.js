@@ -37,7 +37,7 @@ const EXPECTED_ORIGIN = 'https://vivebharath.github.io';
       payload: sendForm,
       timestamp: new Date().toISOString()
     };
-    childTabRef.current.postMessage(message, CHILD_APP_URL);
+    childTabRef.current.postMessage(message, EXPECTED_ORIGIN);
     setSendStatus('✅ Data sent to child successfully!');
     setSendForm({ title: '', description: '', value: '' });
   };
