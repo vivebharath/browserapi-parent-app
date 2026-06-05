@@ -1,19 +1,27 @@
 import React, { useEffect, useState, useRef } from 'react';
 import './App.css';
 
+// 🌐 ENVIRONMENT SETUP: Automatically detect Local vs Production
+const IS_LOCAL = window.location.hostname === 'localhost';
+const CHILD_APP_URL = IS_LOCAL 
+  ? 'http://localhost:3001/' 
+  : 'https://vivebharath.github.io/browserapi-child-app/';
+const EXPECTED_ORIGIN = IS_LOCAL 
+  ? 'http://localhost:3001' 
+  : 'https://vivebharath.github.io';
+
 const App = () => {
   const [receivedData, setReceivedData] = useState(null);
   const iframeRef = useRef(null);
   const childTabRef = useRef(null);
-  const [sendForm, setSendForm] = useState({ title: '', description: '', value: '' });
+  const [sendForm, setSendForm] = useState({ whatHappened: '', whyIsItProblem: '', howDetected: '' });
   const [sendStatus, setSendStatus] = useState('');
+  
+  // 📱 Mobile Support State
+  const [useIframe, setUseIframe] = useState(false);
 
-// The full URL used to open the child window
-const CHILD_APP_URL = 'https://vivebharath.github.io/browserapi-child-app/';
-
-// The origin used for security validation (No path at the end!)
-const EXPECTED_ORIGIN = 'https://vivebharath.github.io';
   const openChildInNewTab = () => {
+    setUseIframe(false); // Turn off iframe if opening a tab
     if (childTabRef.current && !childTabRef.current.closed) {
       childTabRef.current.focus();
     } else {
@@ -28,23 +36,31 @@ const EXPECTED_ORIGIN = 'https://vivebharath.github.io';
 
   const sendDataToChild = (e) => {
     e.preventDefault();
-    if (!childTabRef.current || childTabRef.current.closed) {
-      setSendStatus('⚠️ Child window is not open. Click "Open Child in New Tab" first.');
-      return;
-    }
+    
     const message = {
       type: 'PARENT_DATA',
       payload: sendForm,
       timestamp: new Date().toISOString()
     };
-    childTabRef.current.postMessage(message, EXPECTED_ORIGIN);
-    setSendStatus('✅ Data sent to child successfully!');
-    setSendForm({ title: '', description: '', value: '' });
+
+    // Check if we are using the Mobile Iframe OR the Desktop Tab
+    if (useIframe && iframeRef.current) {
+      iframeRef.current.contentWindow.postMessage(message, EXPECTED_ORIGIN);
+      setSendStatus('✅ Data sent to mobile iframe successfully!');
+    } else if (childTabRef.current && !childTabRef.current.closed) {
+      childTabRef.current.postMessage(message, EXPECTED_ORIGIN);
+      setSendStatus('✅ Data sent to child tab successfully!');
+    } else {
+      setSendStatus('⚠️ Child is not open. Click a button above first.');
+      return;
+    }
+
+    // Reset Form
+    setSendForm({ whatHappened: '', whyIsItProblem: '', howDetected: '' });
   };
 
   useEffect(() => {
     const handleMessage = (event) => {
-      // Security: Validate origin
       if (event.origin !== EXPECTED_ORIGIN) {
         console.warn('Received message from untrusted origin:', event.origin);
         return;
@@ -55,78 +71,77 @@ const EXPECTED_ORIGIN = 'https://vivebharath.github.io';
 
       if (data.type === 'FORM_SUBMITTED') {
         setReceivedData(data.payload);
+        setSendForm(data.payload); 
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
+  }, []); 
 
   return (
     <div className="app-container">
       <div className="header">
-        <h1> Parent App</h1>
-        <p>Receiving form data from child iframe</p>
+        <h1> Parent App (Consider Like VIM)</h1>
+        <p>Running on: {IS_LOCAL ? 'Localhost' : 'Production'}</p>
       </div>
 
       <div className="tab-btn-row">
         <button className="open-tab-btn" onClick={openChildInNewTab}>
-          🔗 Open Child in New Tab
+          🔗 Open in New Tab (Desktop)
         </button>
+        {/* <button className="open-tab-btn" onClick={() => setUseIframe(!useIframe)}>
+          📱 {useIframe ? 'Close' : 'Open in'} Iframe (Mobile)
+        </button> */}
       </div>
+
+      {/* 📱 Mobile Iframe Container */}
+      {useIframe && (
+        <div className="iframe-container" style={{ marginTop: '20px', border: '2px solid #ccc' }}>
+          <iframe 
+            ref={iframeRef} 
+            src={CHILD_APP_URL} 
+            width="100%" 
+            height="400px" 
+            title="Child App"
+          />
+        </div>
+      )}
 
       <div className="main-content">
         <div className="send-panel">
           <h2>Send Data to Child</h2>
           <form onSubmit={sendDataToChild}>
             <div className="form-group">
-              <label>Title:</label>
+              <label>What happened?</label>
               <input
                 type="text"
-                name="title"
-                value={sendForm.title}
+                name="whatHappened"
+                value={sendForm.whatHappened}
                 onChange={handleSendInputChange}
-                placeholder="Enter title"
               />
             </div>
             <div className="form-group">
-              <label>Description:</label>
+              <label>Why is it a Problem?</label>
               <input
                 type="text"
-                name="description"
-                value={sendForm.description}
+                name="whyIsItProblem"
+                value={sendForm.whyIsItProblem}
                 onChange={handleSendInputChange}
-                placeholder="Enter description"
               />
             </div>
             <div className="form-group">
-              <label>Value:</label>
+              <label>How detected?</label>
               <input
                 type="text"
-                name="value"
-                value={sendForm.value}
+                name="howDetected"
+                value={sendForm.howDetected}
                 onChange={handleSendInputChange}
-                placeholder="Enter value"
               />
             </div>
             <button type="submit" className="submit-btn"> Send to Child</button>
             {sendStatus && <p className="status-msg">{sendStatus}</p>}
           </form>
-        </div>
-
-        <div className="data-panel">
-          <h2>Data Received from Child</h2>
-          {receivedData ? (
-            <div className="data-display">
-              <p><strong>Name:</strong> {receivedData.name}</p>
-              <p><strong>Email:</strong> {receivedData.email}</p>
-              <p><strong>Phone:</strong> {receivedData.phone}</p>
-              <p><strong>Message:</strong> {receivedData.message || '(empty)'}</p>
-            </div>
-          ) : (
-            <p className="placeholder">Waiting for form submission from child...</p>
-          )}
         </div>
       </div>
     </div>
