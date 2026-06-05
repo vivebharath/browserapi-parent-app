@@ -3,15 +3,10 @@ import './App.css';
 
 // 🌐 ENVIRONMENT SETUP: Automatically detect Local vs Production
 const IS_LOCAL = window.location.hostname === 'localhost';
-const CHILD_APP_URL = IS_LOCAL 
-  ? 'http://localhost:3001/' 
-  : 'https://vivebharath.github.io/browserapi-child-app/';
-const EXPECTED_ORIGIN = IS_LOCAL 
-  ? 'http://localhost:3001' 
-  : 'https://vivebharath.github.io';
+const CHILD_APP_URL = IS_LOCAL  ? 'http://localhost:3001/'  : 'https://vivebharath.github.io/browserapi-child-app/';
+const EXPECTED_ORIGIN = IS_LOCAL ? 'http://localhost:3001'  : 'https://vivebharath.github.io';
 
 const App = () => {
-  const [receivedData, setReceivedData] = useState(null);
   const iframeRef = useRef(null);
   const childTabRef = useRef(null);
   const [sendForm, setSendForm] = useState({ whatHappened: '', whyIsItProblem: '', howDetected: '' });
@@ -36,12 +31,12 @@ const App = () => {
 
   const sendDataToChild = (e) => {
     e.preventDefault();
-    
     const message = {
       type: 'PARENT_DATA',
       payload: sendForm,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
+    console.log(window)
 
     // Check if we are using the Mobile Iframe OR the Desktop Tab
     if (useIframe && iframeRef.current) {
@@ -56,7 +51,7 @@ const App = () => {
     }
 
     // Reset Form
-    setSendForm({ whatHappened: '', whyIsItProblem: '', howDetected: '' });
+    // setSendForm({ whatHappened: '', whyIsItProblem: '', howDetected: '' });
   };
 
   useEffect(() => {
@@ -70,7 +65,7 @@ const App = () => {
       console.log('Parent received:', data);
 
       if (data.type === 'FORM_SUBMITTED') {
-        setReceivedData(data.payload);
+        // setReceivedData(data.payload);
         setSendForm(data.payload); 
       }
     };
@@ -91,11 +86,11 @@ const App = () => {
           🔗 Open in New Tab (Desktop)
         </button>
         {/* <button className="open-tab-btn" onClick={() => setUseIframe(!useIframe)}>
-          📱 {useIframe ? 'Close' : 'Open in'} Iframe (Mobile)
+           {useIframe ? 'Close' : 'Open in'} Iframe (Mobile)
         </button> */}
       </div>
 
-      {/* 📱 Mobile Iframe Container */}
+      {/* Mobile Iframe Container */}
       {useIframe && (
         <div className="iframe-container" style={{ marginTop: '20px', border: '2px solid #ccc' }}>
           <iframe 
