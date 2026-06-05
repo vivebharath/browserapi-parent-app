@@ -55,6 +55,26 @@ const App = () => {
   };
 
   useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // Check if the child tab was opened and is still active
+      if (childTabRef.current && !childTabRef.current.closed) {
+        // Cancel the event
+        e.preventDefault();
+        // Chrome requires returnValue to be set
+        e.returnValue = ''; 
+        // Return string for older browser support
+        window.alert("TEST")
+        return ''; 
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Cleanup the listener when the component unmounts
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  useEffect(() => {
     const handleMessage = (event) => {
       if (event.origin !== EXPECTED_ORIGIN) {
         console.warn('Received message from untrusted origin:', event.origin);
