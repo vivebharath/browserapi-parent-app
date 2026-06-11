@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import './App.css';
 
-// 🌐 ENVIRONMENT SETUP: Automatically detect Local vs Production
 const IS_LOCAL = window.location.hostname === 'localhost';
 const CHILD_APP_URL = IS_LOCAL  ? 'http://localhost:3001/'  : 'https://vivebharath.github.io/browserapi-child-app/';
 const EXPECTED_ORIGIN = IS_LOCAL ? 'http://localhost:3001'  : 'https://vivebharath.github.io';
@@ -10,13 +9,18 @@ const App = () => {
   const iframeRef = useRef(null);
   const childTabRef = useRef(null);
   const [sendForm, setSendForm] = useState({ whatHappened: '', whyIsItProblem: '', howDetected: '' });
-  const [sendStatus, setSendStatus] = useState('');
-  
-  // 📱 Mobile Support State
   const [useIframe, setUseIframe] = useState(false);
+  
+  // 🚨 NEW: Keep a live reference of the form data for our event listener
+  const latestFormRef = useRef(sendForm);
+
+  // Keep the ref constantly updated without triggering re-renders
+  useEffect(() => {
+    latestFormRef.current = sendForm;
+  }, [sendForm]);
 
   const openChildInNewTab = () => {
-    setUseIframe(false); // Turn off iframe if opening a tab
+    setUseIframe(false);
     if (childTabRef.current && !childTabRef.current.closed) {
       childTabRef.current.focus();
     } else {
@@ -29,63 +33,54 @@ const App = () => {
     setSendForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const sendDataToChild = (e) => {
-    e.preventDefault();
+  // 🚨 NEW: Real-Time Auto-Sync (Fires every time the user types)
+  useEffect(() => {
     const message = {
       type: 'PARENT_DATA',
       payload: sendForm,
       timestamp: new Date().toISOString(),
     };
-    console.log(window)
 
-    // Check if we are using the Mobile Iframe OR the Desktop Tab
-    if (useIframe && iframeRef.current) {
+    if (useIframe && iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage(message, EXPECTED_ORIGIN);
-      setSendStatus('✅ Data sent to mobile iframe successfully!');
     } else if (childTabRef.current && !childTabRef.current.closed) {
       childTabRef.current.postMessage(message, EXPECTED_ORIGIN);
-      setSendStatus('✅ Data sent to child tab successfully!');
-    } else {
-      setSendStatus('⚠️ Child is not open. Click a button above first.');
-      return;
     }
+  }, [sendForm, useIframe]); // Depends on sendForm!
 
-    // Reset Form
-    // setSendForm({ whatHappened: '', whyIsItProblem: '', howDetected: '' });
-  };
-
+  // 🛡️ Prevent closing the parent if the child tab is open
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      // Check if the child tab was opened and is still active
       if (childTabRef.current && !childTabRef.current.closed) {
-        // Cancel the event
         e.preventDefault();
-        // Chrome requires returnValue to be set
         e.returnValue = ''; 
-        // Return string for older browser support
-        window.alert("TEST")
         return ''; 
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    // Cleanup the listener when the component unmounts
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
+  // 👂 Message Listener
   useEffect(() => {
     const handleMessage = (event) => {
-      if (event.origin !== EXPECTED_ORIGIN) {
-        console.warn('Received message from untrusted origin:', event.origin);
-        return;
-      }
+      if (event.origin !== EXPECTED_ORIGIN) return;
 
       const data = event.data;
-      console.log('Parent received:', data);
+
+      // 🚨 NEW: When the Child says "I'm ready!", instantly send it the initial data
+      if (data.type === 'CHILD_LOADED') {
+        console.log('Parent recognized Child loaded. Sending initial data...');
+        // event.source refers to the exact window (tab or iframe) that sent the message
+        event.source.postMessage({
+          type: 'PARENT_DATA',
+          payload: latestFormRef.current, // Use the ref to get the absolute latest state
+          timestamp: new Date().toISOString()
+        }, EXPECTED_ORIGIN);
+      }
 
       if (data.type === 'FORM_SUBMITTED') {
-        // setReceivedData(data.payload);
+        console.log('Parent received final data from Child:', data.payload);
         setSendForm(data.payload); 
       }
     };
@@ -105,12 +100,8 @@ const App = () => {
         <button className="open-tab-btn" onClick={openChildInNewTab}>
           🔗 Open in New Tab (Desktop)
         </button>
-        {/* <button className="open-tab-btn" onClick={() => setUseIframe(!useIframe)}>
-           {useIframe ? 'Close' : 'Open in'} Iframe (Mobile)
-        </button> */}
       </div>
 
-      {/* Mobile Iframe Container */}
       {useIframe && (
         <div className="iframe-container" style={{ marginTop: '20px', border: '2px solid #ccc' }}>
           <iframe 
@@ -125,38 +116,38 @@ const App = () => {
 
       <div className="main-content">
         <div className="send-panel">
-          <h2>Send Data to Child</h2>
-          <form onSubmit={sendDataToChild}>
-            <div className="form-group">
-              <label>What happened?</label>
-              <input
-                type="text"
-                name="whatHappened"
-                value={sendForm.whatHappened}
-                onChange={handleSendInputChange}
-              />
-            </div>
-            <div className="form-group">
-              <label>Why is it a Problem?</label>
-              <input
-                type="text"
-                name="whyIsItProblem"
-                value={sendForm.whyIsItProblem}
-                onChange={handleSendInputChange}
-              />
-            </div>
-            <div className="form-group">
-              <label>How detected?</label>
-              <input
-                type="text"
-                name="howDetected"
-                value={sendForm.howDetected}
-                onChange={handleSendInputChange}
-              />
-            </div>
-            <button type="submit" className="submit-btn"> Send to Child</button>
-            {sendStatus && <p className="status-msg">{sendStatus}</p>}
-          </form>
+          <h2>Live Sync Data to Child</h2>
+          {/* 🚨 REMOVED: <form> wrapper and the Submit Button */}
+          <div className="form-group">
+            <label>What happened?</label>
+            <input
+              type="text"
+              name="whatHappened"
+              value={sendForm.whatHappened}
+              onChange={handleSendInputChange}
+            />
+          </div>
+          <div className="form-group">
+            <label>Why is it a Problem?</label>
+            <input
+              type="text"
+              name="whyIsItProblem"
+              value={sendForm.whyIsItProblem}
+              onChange={handleSendInputChange}
+            />
+          </div>
+          <div className="form-group">
+            <label>How detected?</label>
+            <input
+              type="text"
+              name="howDetected"
+              value={sendForm.howDetected}
+              onChange={handleSendInputChange}
+            />
+          </div>
+          <p className="status-msg" style={{ color: 'gray', fontSize: '12px' }}>
+            ℹ️ Changes here sync automatically to the AI Coach if it's open.
+          </p>
         </div>
       </div>
     </div>
