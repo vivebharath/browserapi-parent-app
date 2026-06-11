@@ -27,6 +27,15 @@ const App = () => {
       childTabRef.current = window.open(CHILD_APP_URL, 'child-app');
     }
   };
+  // Place this inside your Parent App component
+  useEffect(() => {
+    if (window.opener) {
+      window.opener.postMessage({ 
+        type: 'PARENT_READY', 
+        timestamp: new Date().toISOString() 
+      }, EXPECTED_ORIGIN);
+    }
+  }, []);
 
   const handleSendInputChange = (e) => {
     const { name, value } = e.target;
