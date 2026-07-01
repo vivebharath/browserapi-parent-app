@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import './App.css';
+import { initGA, logPageView, logEvent } from './analytics';
 
 const IS_LOCAL = window.location.hostname === 'localhost';
 const CHILD_APP_URL = IS_LOCAL  ? 'http://localhost:3001/'  : 'https://vivebharath.github.io/browserapi-child-app/';
@@ -29,6 +30,8 @@ const App = () => {
   };
   // Place this inside your Parent App component
   useEffect(() => {
+    initGA();
+    logPageView();
     if (window.opener) {
       window.opener.postMessage({ 
         type: 'PARENT_READY', 
@@ -73,6 +76,7 @@ const App = () => {
   // 👂 Message Listener
   useEffect(() => {
     const handleMessage = (event) => {
+      console.log(event,"TEST")
       if (event.origin !== EXPECTED_ORIGIN) return;
 
       const data = event.data;
@@ -80,6 +84,7 @@ const App = () => {
       // 🚨 NEW: When the Child says "I'm ready!", instantly send it the initial data
       if (data.type === 'CHILD_LOADED') {
         console.log('Parent recognized Child loaded. Sending initial data...');
+        logEvent('Child', 'Loaded');
         // event.source refers to the exact window (tab or iframe) that sent the message
         event.source.postMessage({
           type: 'PARENT_DATA',
@@ -90,6 +95,7 @@ const App = () => {
 
       if (data.type === 'FORM_SUBMITTED') {
         console.log('Parent received final data from Child:', data.payload);
+        logEvent('Child', 'Form Submitted');
         setSendForm(data.payload); 
       }
     };
